@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repo Markdown Aggregator</title>
+    <!-- Include js-yaml for reliable front matter parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #232326;
+            --text-color: #e8eaed;
+            --accent-color: #3b82f6;
+            --card-bg: #121212;
+            --border-color: #939497;
+            color-scheme: dark;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 40px 20px;
+            background-color: var(--bg-color); color: var(--text-color);
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: var(--card-bg); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); padding: 30px; position: relative; margin-bottom: 20px;}
+        h1, h2, h3 { margin-top: 0; }
+        
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #B5B5B5; }
+        input[type="text"], input[type="url"], select, textarea {
+            width: 100%; padding: 10px; background-color: #3B3B3B; color: #e5e7eb;
+            border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; margin-bottom: 15px; font-family: inherit;
+        }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; }
+        .checkbox-group input[type="checkbox"] { width: auto; transform: scale(1.2); cursor: pointer; }
+        .checkbox-group label { margin-bottom: 0; cursor: pointer; color: #e5e7eb; }
+
+        button.primary-btn { background-color: var(--accent-color); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; }
+        button.primary-btn:hover { background-color: #2563eb; }
+        button.primary-btn:disabled { background-color: #555; cursor: not-allowed; }
+        button.secondary-btn { background-color: #374151; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
+        button.secondary-btn:hover { background-color: #4b5563; }
+        button.danger-btn { background-color: #dc2626; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; }
+
+        .sort-rule { background: #1E1F20; padding: 15px; border-radius: 6px; margin-bottom: 10px; display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border-color);}
+        .sort-rule > div { flex-grow: 1; }
+
+        #logArea { background: #1E1F20; color: #51cf66; font-family: monospace; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); height: 100px; overflow-y: auto; font-size: 0.85rem; margin-bottom: 15px; }
+        
+        /* GitHub Ribbon */
+        .github-link { position: absolute; top: 25px; right: 25px; color: #9ca3af; transition: color 0.2s ease; }
+        .github-link:hover { color: var(--accent-color); }
+        .github-link svg { width: 28px; height: 28px; fill: currentColor; }
+        h1 { padding-right: 40px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="card">
+            <a href="https://github.com/sparktsang/aggregator" target="_blank" class="github-link" title="View source on GitHub">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+            </a>
+
+            <h1>Repo Markdown Aggregator</h1>
+            <p style="color:#B5B5B5;">Fetch, clean, sort, and aggregate `.md` files from any public GitHub repository folder into a single unified text file.</p>
+
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+            <h3>1. Target Repository Folder</h3>
+            <div>
+                <label>Paste GitHub URL (e.g., https://github.com/USERNAME/REPO/tree/master/_posts)</label>
+                <input type="url" id="repoUrl" placeholder="https://github.com/owner/repo/tree/branch/folder">
+            </div>
+            <div>
+                <label>Exclude Files (one per line; ".md" optional)</label>
+                <textarea id="optExclude" style="height: 80px; font-family: monospace;" placeholder="filename1&#10;filename2"></textarea>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+            <h3>2. Content Processing</h3>
+            <div class="checkbox-group">
+                <input type="checkbox" id="optFrontMatter"> <label for="optFrontMatter">Include Front Matter (YAML)</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="optLinks"> <label for="optLinks">Include Links (If unchecked, converts to plain text and strips reference lists)</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="optHtml"> <label for="optHtml">Include HTML Tags (If unchecked, strips tags like &lt;div&gt;)</label>
+            </div>
+            <div>
+                <label>File Separator Template ({path} will be replaced with file name)</label>
+                <textarea id="optSeparator" style="height: 80px; font-family: monospace;">
+---------------------------------
+{path}
+---------------------------------</textarea>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+            <h3>3. Multi-Level Sorting</h3>
+            <p style="font-size: 0.85rem; color: #B5B5B5;">Files without the specified keys will fall to the bottom. 'date' applies to Jekyll filenames (YYYY-MM-DD) or front matter.</p>
+            <div id="sortRulesContainer"></div>
+            <button class="secondary-btn" onclick="addSortRule()" style="margin-bottom: 20px;">+ Add Sort Level</button>
+
+            <button class="primary-btn" id="btnRun" onclick="runAggregation()">Fetch & Aggregate Files</button>
+        </div>
+
+        <div class="card" id="outputCard" style="display: none;">
+            <h3>Console Log</h3>
+            <div id="logArea"></div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Aggregated Result</h3>
+                <button class="secondary-btn" onclick="copyOutput()">Copy Result</button>
+            </div>
+            <textarea id="finalOutput" style="height: 400px; margin-top: 10px;" readonly></textarea>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Dynamic Sorting UI ---
+        let sortRuleCount = 0;
+
+        function addSortRule() {
+            const container = document.getElementById('sortRulesContainer');
+            const ruleId = `rule_${sortRuleCount++}`;
+            
+            const html = `
+                <div class="sort-rule" id="${ruleId}">
+                    <div>
+                        <label>Front Matter Key</label>
+                        <input type="text" class="sort-key" placeholder="e.g., date, classification, order" value="date">
+                    </div>
+                    <div>
+                        <label>Sort Order</label>
+                        <select class="sort-dir" onchange="toggleCustomList('${ruleId}')">
+                            <option value="asc" selected>Ascending (A-Z / Oldest)</option>
+                            <option value="desc">Descending (Z-A / Newest)</option>
+                            <option value="custom">Custom Ordered List</option>
+                        </select>
+                    </div>
+                    <div class="custom-list-container" style="display: none;">
+                        <label>Custom List (Comma separated)</label>
+                        <input type="text" class="sort-custom" placeholder="e.g., Investment,History,Politics">
+                    </div>
+                    <button class="danger-btn" onclick="document.getElementById('${ruleId}').remove()" style="align-self: flex-end; margin-bottom: 15px;">X</button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        }
+
+        function toggleCustomList(ruleId) {
+            const ruleDiv = document.getElementById(ruleId);
+            const dir = ruleDiv.querySelector('.sort-dir').value;
+            ruleDiv.querySelector('.custom-list-container').style.display = (dir === 'custom') ? 'block' : 'none';
+        }
+
+        // Initialize with one default rule
+        addSortRule();
+
+        // --- 2. Logging ---
+        function log(msg) {
+            const logArea = document.getElementById('logArea');
+            logArea.innerHTML += `> ${msg}<br>`;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(msg);
+        }
+
+        // --- 3. Core Logic ---
+        async function runAggregation() {
+            document.getElementById('outputCard').style.display = 'block';
+            document.getElementById('logArea').innerHTML = '';
+            document.getElementById('finalOutput').value = '';
+            const btn = document.getElementById('btnRun');
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+
+            try {
+                // Parse URL
+                const urlInput = document.getElementById('repoUrl').value.trim();
+                if (!urlInput) throw new Error("Please enter a GitHub URL.");
+
+                // Regex extracts: 1=owner, 2=repo, 3=branch, 4=path
+                const urlPattern = /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/tree\/([^\/]+)\/?(.*))?$/;
+                const match = urlInput.match(urlPattern);
+
+                if (!match) throw new Error("Invalid GitHub URL format. Make sure it looks like https://github.com/owner/repo/tree/branch/folder");
+
+                const owner = match[1];
+                const repo = match[2];
+                let branch = match[3];
+                const path = match[4] || '';
+
+                const headers = { "Accept": "application/vnd.github.v3+json" };
+
+                // If user pastes root URL without branch (e.g. https://github.com/owner/repo), we must fetch the default branch name
+                if (!branch) {
+                    log(`Branch not specified in URL. Fetching default branch...`);
+                    const repoInfoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+                    if (!repoInfoRes.ok) throw new Error("Failed to fetch repo info. Is it a public repository?");
+                    const repoInfo = await repoInfoRes.json();
+                    branch = repoInfo.default_branch;
+                }
+
+                // Step 1: Get Git Tree (recursive) to find all MD files
+                log(`Fetching tree for ${owner}/${repo} on branch '${branch}'...`);
+                let treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
+                const treeRes = await fetch(treeUrl, { headers });
+                if (!treeRes.ok) throw new Error(`GitHub API Error: ${treeRes.statusText}. Make sure the repository is public.`);
+                const treeData = await treeRes.json();
+
+                // Filter markdown files matching the path
+                const pathPrefix = path ? (path.endsWith('/') ? path : path + '/') : '';
+
+                // Build exclude set from textarea (one filename per line, ".md" optional)
+                const excludeSet = new Set(
+                    document.getElementById('optExclude').value
+                        .split('\n')
+                        .map(s => s.trim().toLowerCase())
+                        .filter(Boolean)
+                        .map(s => s.replace(/\.md$/, ''))
+                );
+
+                let mdFiles = treeData.tree.filter(item => {
+                    if (item.type !== 'blob') return false;
+                    if (!item.path.endsWith('.md')) return false;
+                    if (pathPrefix && !item.path.startsWith(pathPrefix)) return false;
+                    const base = item.path.split('/').pop().replace(/\.md$/i, '').toLowerCase();
+                    if (excludeSet.has(base)) return false;
+                    return true;
+                });
+
+                log(`Found ${mdFiles.length} Markdown files in the specified path. Starting download...`);
+
+                // Step 2: Fetch and Parse content
+                let parsedFiles = [];
+                for (let i = 0; i < mdFiles.length; i++) {
+                    const fileNode = mdFiles[i];
+                    log(`[${i+1}/${mdFiles.length}] Fetching ${fileNode.path}...`);
+                    
+                    const fileRes = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${fileNode.path}`);
+                    if (!fileRes.ok) {
+                        log(`Failed to fetch ${fileNode.path}, skipping.`);
+                        continue;
+                    }
+                    const rawContent = await fileRes.text();
+
+                    // Parse YAML Front Matter
+                    let meta = {};
+                    let body = rawContent;
+                    let frontMatterRaw = "";
+
+                    const fmMatch = rawContent.match(/^---\n([\s\S]*?)\n---/);
+                    if (fmMatch) {
+                        frontMatterRaw = fmMatch[0];
+                        body = rawContent.slice(frontMatterRaw.length).trim();
+                        try {
+                            meta = jsyaml.load(fmMatch[1]) || {};
+                        } catch (e) {
+                            log(`Warning: Failed to parse YAML for ${fileNode.path}`);
+                        }
+                    }
+
+                    // Jekyll default: filename date (YYYY-MM-DD) drives primary ordering;
+                    // front matter 'date' (with a specific time) breaks ties on the same day.
+                    const dateMatch = fileNode.path.match(/(\d{4}-\d{2}-\d{2})/);
+                    if (dateMatch) {
+                        meta._filedate = dateMatch[1];
+                        if (!meta.date) meta.date = dateMatch[1];
+                    }
+                    
+                    parsedFiles.push({
+                        path: fileNode.path,
+                        meta: meta,
+                        frontMatterRaw: frontMatterRaw,
+                        body: body
+                    });
+                }
+
+                // Step 3: Multi-Level Sorting
+                log(`Applying multi-level sort...`);
+                
+                // Build rules array from UI
+                const ruleElements = document.querySelectorAll('.sort-rule');
+                const rules = Array.from(ruleElements).map(el => {
+                    const key = el.querySelector('.sort-key').value.trim();
+                    const dir = el.querySelector('.sort-dir').value;
+                    const customList = el.querySelector('.sort-custom').value.split(',').map(s => s.trim().toLowerCase());
+                    return { key, dir, customList };
+                });
+
+                parsedFiles.sort((a, b) => {
+                    for (let rule of rules) {
+                        if (!rule.key) continue;
+
+                        let valA = a.meta[rule.key];
+                        let valB = b.meta[rule.key];
+
+                        // For 'date': filename date is the primary key;
+                        // front matter 'date' (which may carry a time) breaks ties.
+                        if (rule.key === 'date') {
+                            const toStr = v => v instanceof Date ? v.toISOString() : (v == null ? '' : String(v));
+                            const primaryA = a.meta._filedate || toStr(a.meta.date);
+                            const primaryB = b.meta._filedate || toStr(b.meta.date);
+                            if (primaryA !== primaryB) {
+                                valA = primaryA;
+                                valB = primaryB;
+                            } else {
+                                valA = toStr(a.meta.date);
+                                valB = toStr(b.meta.date);
+                            }
+                        }
+
+                        // Handle missing values (push to bottom)
+                        let missingA = (valA === undefined || valA === null || valA === "");
+                        let missingB = (valB === undefined || valB === null || valB === "");
+                        
+                        if (missingA && !missingB) return 1;
+                        if (!missingA && missingB) return -1;
+                        if (missingA && missingB) continue; // Both missing, move to next rule
+
+                        // Comparison
+                        if (rule.dir === 'custom') {
+                            // Find index in custom list (case insensitive)
+                            let idxA = rule.customList.indexOf(String(valA).toLowerCase());
+                            let idxB = rule.customList.indexOf(String(valB).toLowerCase());
+                            if (idxA === -1) idxA = 999999;
+                            if (idxB === -1) idxB = 999999;
+                            if (idxA !== idxB) return idxA - idxB;
+                        } else {
+                            // Standard Asc/Desc
+                            if (valA < valB) return rule.dir === 'asc' ? -1 : 1;
+                            if (valA > valB) return rule.dir === 'asc' ? 1 : -1;
+                        }
+                    }
+                    return 0; // All rules equal
+                });
+
+                // Step 4: Content Cleaning & Aggregation
+                log(`Cleaning and assembling final document...`);
+                
+                const incFM = document.getElementById('optFrontMatter').checked;
+                const incLinks = document.getElementById('optLinks').checked;
+                const incHtml = document.getElementById('optHtml').checked;
+                const separatorTemplate = document.getElementById('optSeparator').value;
+
+                let finalDocument = [];
+
+                parsedFiles.forEach(file => {
+                    let content = file.body;
+
+                    // Filter HTML
+                    if (!incHtml) {
+                        content = content.replace(/<[^>]*>?/gm, '');
+                    }
+
+                    // Filter Links
+                    if (!incLinks) {
+                        // 1. Inline links: [link text](url) -> link text
+                        content = content.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+                        // 2. Reference links: [link text][id] -> link text
+                        content = content.replace(/\[([^\]]+)\]\[[^\]]+\]/g, '$1');
+                        // 3. Remove footnote/reference definitions at bottom: [id]: url
+                        content = content.replace(/^\[[^\]]+\]:\s*.*$/gm, '');
+                        // 4. Remove inline attribute lists (Kramdown IAL), e.g. {:target="_blank" .foo}
+                        content = content.replace(/\{:[^}]*\}/g, '');
+                    }
+
+                    // Assemble
+                    let fileHeader = separatorTemplate.replace('{path}', file.path);
+                    
+                    let parts = [];
+                    parts.push(fileHeader);
+                    if (incFM && file.frontMatterRaw) parts.push(file.frontMatterRaw);
+                    parts.push(content);
+
+                    finalDocument.push(parts.join('\n\n'));
+                });
+
+                document.getElementById('finalOutput').value = finalDocument.join('\n\n');
+                log(`✅ Success! Aggregated ${parsedFiles.length} files.`);
+
+            } catch (err) {
+                log(`❌ ERROR: ${err.message}`);
+                alert("Error occurred. Check console log.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Fetch & Aggregate Files";
+            }
+        }
+
+        function copyOutput() {
+            const copyText = document.getElementById('finalOutput');
+            const btn = event.target;
+            const originalText = btn.innerText;
+
+            copyText.select();
+            copyText.setSelectionRange(0, 999999); 
+            navigator.clipboard.writeText(copyText.value).then(() => {
+                btn.innerText = "Copied!";
+                btn.style.backgroundColor = "#10b981";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.backgroundColor = "#374151";
+                }, 1000);
+            });
+        }
+    </script>
+    
+    <!-- === SIGNATURE BADGE === -->
+    <style>
+        .spark-badge {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4); /* 半透明黑底，適應深淺背景 */
+            backdrop-filter: blur(4px);      /* 磨砂玻璃效果 */
+            padding: 8px 12px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            z-index: 9999; /* 確保浮在最上層 */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+    
+        .spark-badge:hover {
+            background: rgba(255, 255, 255, 0.95);
+            color: #111; /* Hover 時變白底黑字，高對比 */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+    
+        .spark-badge span {
+            font-weight: 600;
+            margin-left: 4px;
+        }
+        
+        /* Mobile RWD: 防止在手機遮住重要內容 */
+        @media (max-width: 600px) {
+            .spark-badge {
+                bottom: 10px;
+                right: 10px;
+                padding: 6px 10px;
+                font-size: 10px;
+            }
+        }
+    </style>
+    
+    <a href="https://sparktsang.github.io/artifacts/" target="_blank" class="spark-badge" title="Visit Spark's Website">
+        Built by <span>Spark Tsang</span>
+    </a>
+</body>
+</html>
