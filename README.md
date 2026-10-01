@@ -7,7 +7,6 @@ Here is a comprehensive and professional `README.md` for your new standalone rep
 A powerful, entirely client-side web application that fetches, cleans, sorts, and aggregates `.md` files from any GitHub repository into a single, unified text file. 
 
 **[👉 Click here to use the App](https://sparktsang.github.io/aggregator/)**  
-*(Replace the link above after you enable GitHub Pages)*
 
 ---
 
