@@ -1,7 +1,3 @@
-Here is a comprehensive and professional `README.md` for your new standalone repository. It maintains the same enthusiastic and philosophy-driven tone as your previous tools, while perfectly highlighting the unique power of this aggregator.
-
-***
-
 # 📚 Repo Markdown Aggregator
 
 A powerful, entirely client-side web application that fetches, cleans, sorts, and aggregates `.md` files from any GitHub repository into a single, unified text file. 
